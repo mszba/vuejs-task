@@ -53,13 +53,14 @@
               v-model="page"
               id="page"
               type="number"
+              min="1"
               placeholder="Page numbers"
             />
           </div>
         </div>
         <div class="controlPanelWrap">
           <span v-if="totalCount >= 0" class="resultsCount">
-            <span style="font-weight: bold">{{ totalCount }}</span>
+            <span class="resultNumber">{{ totalCount }}</span>
             results</span
           >
           <span></span>
@@ -122,6 +123,9 @@ export default class HomePage extends Vue {
     this.order = "desc";
     this.per_page = 10;
     this.page = 1;
+    this.totalCount = -1;
+    this.usersArray = [];
+    this.reposArray = [];
   }
 
   async searchForData(event: Event): Promise<void> {
@@ -237,11 +241,13 @@ export default class HomePage extends Vue {
     #01582c,
     #004f24
   );
+  font-family: "Open Sans", sans-serif;
   color: #ffff;
 }
 
 .searchInput::placeholder {
   color: #ffff;
+  font-family: "Open Sans", sans-serif;
 }
 
 .searchIcon {
@@ -294,6 +300,7 @@ export default class HomePage extends Vue {
 }
 
 .queryLabel {
+  margin-bottom: 3px;
   font-size: 13px;
 }
 
@@ -303,8 +310,14 @@ export default class HomePage extends Vue {
   justify-content: space-between;
 }
 .resultsCount {
+  display: flex;
+  align-items: center;
   font-size: 14px;
   color: #000;
+}
+.resultNumber {
+  margin-right: 3px;
+  font-weight: bold;
 }
 .buttonsWrap {
   display: flex;
@@ -319,6 +332,7 @@ export default class HomePage extends Vue {
   color: #000;
   font-weight: bold;
   cursor: pointer;
+  font-family: "Open Sans", sans-serif;
 }
 .searchButton {
   padding: 10px 18px;
@@ -340,6 +354,7 @@ export default class HomePage extends Vue {
   );
   border-radius: 20px;
   font-size: 13px;
+  font-family: "Open Sans", sans-serif;
   text-transform: uppercase;
   color: #ffff;
   cursor: pointer;
