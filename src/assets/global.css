@@ -8,3 +8,30 @@ html,
 body {
   font-family: 'Mulish', 'Open Sans', 'Epilogue', sans-serif;
 }
+
+/* scroll */
+
+body {
+  overflow: overlay;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #118655;
+  border-radius: 3px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: #026234;
+}
