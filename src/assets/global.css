@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&family=Roboto:wght@400;700&display=swap');
+
 * {
   padding: 0;
   margin: 0;
@@ -6,7 +8,7 @@
 
 html,
 body {
-  font-family: 'Mulish', 'Open Sans', 'Epilogue', sans-serif;
+  font-family: 'Open Sans', 'Roboto', 'Mulish', 'Epilogue', sans-serif;
 }
 
 /* scroll */
