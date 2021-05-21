@@ -115,6 +115,7 @@ export default class HomePage extends Vue {
   totalCount = -1;
   usersArray: usersArrayInterface[] = [];
   reposArray: reposArray[] = [];
+  accessHeader = `token ${process.env.VUE_APP_GITHUB_TOKEN}`;
 
   clearSearch(): void {
     this.target = "repositories";
@@ -137,7 +138,12 @@ export default class HomePage extends Vue {
     this.loading = true;
     if (this.target === "repositories") {
       const requestRepos = await axios.get<Data>(
-        `https://api.github.com/search/repositories?sort=${this.sort}&per_page=${this.per_page}&page=${this.page}&order=${this.order}&q=${this.querySearch}`
+        `https://api.github.com/search/repositories?sort=${this.sort}&per_page=${this.per_page}&page=${this.page}&order=${this.order}&q=${this.querySearch}`,
+        {
+          headers: {
+            Authorization: this.accessHeader,
+          },
+        }
       );
       this.totalCount = requestRepos.data.total_count;
       if (requestRepos.status === 200) {
@@ -148,7 +154,11 @@ export default class HomePage extends Vue {
           let contributorsArray: contributorsTypes[] = [];
           let commitsList: string = commitUrl.slice(0, commitUrl.length - 6);
           axios
-            .get(commitsList)
+            .get(commitsList, {
+              headers: {
+                Authorization: this.accessHeader,
+              },
+            })
             .then((res) => {
               res.data.forEach((commit: Commits) => {
                 commitsArray.push(commit.commit.message);
@@ -158,7 +168,11 @@ export default class HomePage extends Vue {
               commitsArray = [];
             });
           axios
-            .get(repo.contributors_url)
+            .get(repo.contributors_url, {
+              headers: {
+                Authorization: this.accessHeader,
+              },
+            })
             .then((res) => {
               res.data.forEach((contributor: contributorObject) => {
                 contributorsArray.push({
@@ -179,15 +193,23 @@ export default class HomePage extends Vue {
       }
     } else {
       const requestUsers = await axios.get<Data>(
-        `https://api.github.com/search/users?sort=${this.sort}&per_page=${this.per_page}&page=${this.page}&order=${this.order}&q=${this.querySearch}`
+        `https://api.github.com/search/users?sort=${this.sort}&per_page=${this.per_page}&page=${this.page}&order=${this.order}&q=${this.querySearch}`,
+        {
+          headers: {
+            Authorization: this.accessHeader,
+          },
+        }
       );
       this.totalCount = requestUsers.data.total_count;
-
       if (requestUsers.status === 200) {
         this.loading = false;
         requestUsers.data.items.forEach((user: usersInterface) => {
           axios
-            .get(user.url)
+            .get(user.url, {
+              headers: {
+                Authorization: this.accessHeader,
+              },
+            })
             .then((res) => {
               let userProfile = res.data;
               this.usersArray.push({
