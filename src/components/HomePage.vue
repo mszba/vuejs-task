@@ -1,6 +1,6 @@
 <template>
   <div class="wrapper">
-    <form @submit="searchForData" class="searchForm">
+    <form @submit="handleSubmit" class="searchForm">
       <div class="inputWrap">
         <input
           required
@@ -9,7 +9,11 @@
           type="text"
           placeholder="Type keywords"
         />
-        <button type="submit" :disabled="loading" class="searchIconButton">
+        <button
+          type="submit"
+          :disabled="$store.state.isLoading"
+          class="searchIconButton"
+        >
           <v-icon class="searchIcon" name="search" scale="1.1" />
         </button>
       </div>
@@ -47,57 +51,53 @@
               <option value="100">100</option>
             </select>
           </div>
-          <div class="queryElement">
-            <label class="queryLabel" for="page">Page number</label>
-            <input
-              v-model="page"
-              id="page"
-              type="number"
-              min="1"
-              placeholder="Page numbers"
-            />
-          </div>
         </div>
         <div class="controlPanelWrap">
-          <span v-if="totalCount >= 0" class="resultsCount">
-            <span class="resultNumber">{{ totalCount }}</span>
+          <span v-if="$store.state.totalCount >= 0" class="resultsCount">
+            <span class="resultNumber">{{ $store.state.totalCount }}</span>
             results</span
           >
           <span></span>
           <div class="buttonsWrap">
-            <button type="button" @click="clearSearch" class="resetButton">
+            <!-- <button type="button" @click="clearSearch" class="resetButton">
               Reset
-            </button>
-            <button type="submit" :disabled="loading" class="searchButton">
+            </button> -->
+            <button
+              type="submit"
+              :disabled="$store.state.isLoading"
+              class="searchButton"
+            >
               Search
             </button>
           </div>
         </div>
       </div>
     </form>
-    <SearchList
-      :usersList="usersArray"
-      :reposList="reposArray"
-      :loading="loading"
-      :totalCount="totalCount"
-    />
+    <SearchList />
+    <div class="paginationWrap" v-if="$store.state.totalCount > 0">
+      <span
+        class="pagesWrap"
+        v-for="(item, index) in pagination(page, pageNumbers())"
+        :key="index"
+      >
+        <button
+          :class="{
+            currentButton: item == $route.query.page,
+            dotsPage: item === '...',
+          }"
+          :disabled="page == item || item === '...' || $store.state.isLoading"
+          @click="handlePageChange(item)"
+        >
+          {{ item }}
+        </button>
+      </span>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue } from "vue-property-decorator";
+import { Component, Vue, Watch } from "vue-property-decorator";
 import SearchList from "./SearchList.vue";
-import axios from "axios";
-import {
-  Data,
-  Items,
-  Commits,
-  contributorsTypes,
-  contributorObject,
-  reposArray,
-  usersInterface,
-  usersArrayInterface,
-} from "../interfaces/index";
 
 @Component({
   components: {
@@ -105,122 +105,121 @@ import {
   },
 })
 export default class HomePage extends Vue {
-  target = "repositories";
-  querySearch = "";
-  sort = "stars";
-  order = "desc";
-  per_page = 10;
-  page = 1;
-  loading = false;
-  totalCount = -1;
-  usersArray: usersArrayInterface[] = [];
-  reposArray: reposArray[] = [];
-  accessHeader = `token ${process.env.VUE_APP_GITHUB_TOKEN}`;
+  querySearch = this.$route.query.name || "";
+  page = Number(this.$route.query.page) || 1;
+  target = this.$route.query.target || "repositories";
+  sort = this.$route.query.sort || "stars";
+  order = this.$route.query.order || "desc";
+  per_page: number = Number(this.$route.query.per_page) || 10;
 
-  clearSearch(): void {
-    this.target = "repositories";
-    this.querySearch = "";
-    this.sort = "stars";
-    this.order = "desc";
-    this.per_page = 10;
-    this.page = 1;
-    this.totalCount = -1;
-    this.usersArray = [];
-    this.reposArray = [];
+  mounted(): void {
+    if (this.$route.query.name == null) return;
+
+    this.$store.commit("setCurrentPage", this.$route.query.page);
+
+    if (
+      (this.target === "repositories" &&
+        this.$store.state.reposArray.length === 0) ||
+      (this.target === "users" && this.$store.state.usersArray.length === 0)
+    ) {
+      this.$store.dispatch("searchForData", {
+        nameQuery: this.querySearch,
+        pageQuery: this.page,
+        target: this.target,
+        sort: this.sort,
+        order: this.order,
+        per_page: this.per_page,
+      });
+    }
   }
 
-  async searchForData(event: Event): Promise<void> {
-    if (event) {
-      event.preventDefault();
-    }
-    this.reposArray = [];
-    this.usersArray = [];
-    this.loading = true;
-    if (this.target === "repositories") {
-      const requestRepos = await axios.get<Data>(
-        `https://api.github.com/search/repositories?sort=${this.sort}&per_page=${this.per_page}&page=${this.page}&order=${this.order}&q=${this.querySearch}`,
-        {
-          headers: {
-            Authorization: this.accessHeader,
-          },
-        }
-      );
-      this.totalCount = requestRepos.data.total_count;
-      if (requestRepos.status === 200) {
-        this.loading = false;
-        requestRepos.data.items.forEach((repo: Items) => {
-          let commitUrl: string = repo.commits_url;
-          let commitsArray: string[] = [];
-          let contributorsArray: contributorsTypes[] = [];
-          let commitsList: string = commitUrl.slice(0, commitUrl.length - 6);
-          axios
-            .get(commitsList, {
-              headers: {
-                Authorization: this.accessHeader,
-              },
-            })
-            .then((res) => {
-              res.data.forEach((commit: Commits) => {
-                commitsArray.push(commit.commit.message);
-              });
-            })
-            .catch(() => {
-              commitsArray = [];
-            });
-          axios
-            .get(repo.contributors_url, {
-              headers: {
-                Authorization: this.accessHeader,
-              },
-            })
-            .then((res) => {
-              res.data.forEach((contributor: contributorObject) => {
-                contributorsArray.push({
-                  contributorName: contributor.login,
-                  contributorAvatar: contributor.avatar_url,
-                });
-              });
-            })
-            .catch(() => {
-              contributorsArray = [];
-            });
-          this.reposArray.push({
-            name: repo.name,
-            commits: commitsArray,
-            contributors: contributorsArray,
-          });
-        });
-      }
-    } else {
-      const requestUsers = await axios.get<Data>(
-        `https://api.github.com/search/users?sort=${this.sort}&per_page=${this.per_page}&page=${this.page}&order=${this.order}&q=${this.querySearch}`,
-        {
-          headers: {
-            Authorization: this.accessHeader,
-          },
-        }
-      );
-      this.totalCount = requestUsers.data.total_count;
-      if (requestUsers.status === 200) {
-        this.loading = false;
-        requestUsers.data.items.forEach((user: usersInterface) => {
-          axios
-            .get(user.url, {
-              headers: {
-                Authorization: this.accessHeader,
-              },
-            })
-            .then((res) => {
-              let userProfile = res.data;
-              this.usersArray.push({
-                userProfile,
-              });
-            })
-            .catch(() => {
-              this.usersArray = [];
-            });
-        });
-      }
+  handleSubmit(event: Event): void {
+    if (event) event.preventDefault();
+
+    const query = Object.assign({}, this.$route.query);
+    query.name = this.querySearch;
+    query.page = this.page;
+    query.target = this.target;
+    query.sort = this.sort;
+    query.order = this.order;
+    query.per_page = this.per_page;
+    this.$router.push({ query });
+
+    this.$store.dispatch("searchForData", {
+      nameQuery: this.querySearch,
+      pageQuery: this.page,
+      target: this.target,
+      sort: this.sort,
+      order: this.order,
+      per_page: this.per_page,
+    });
+  }
+
+  pageNumbers(): number {
+    return Math.ceil(this.$store.state.totalCount / this.per_page);
+  }
+
+  handlePageChange(newPageNumber: number): void {
+    this.page = newPageNumber;
+    this.$store.commit("setCurrentPage", newPageNumber);
+    console.log(this.$store.state.currentPage);
+
+    const query = Object.assign({}, this.$route.query);
+    query.name = this.querySearch;
+    query.page = newPageNumber;
+    query.target = this.target;
+    query.sort = this.sort;
+    query.order = this.order;
+    query.per_page = this.per_page;
+    this.$router.push({ query });
+
+    this.$store.dispatch("searchForData", {
+      nameQuery: this.querySearch,
+      pageQuery: newPageNumber,
+      target: this.target,
+      sort: this.sort,
+      order: this.order,
+      per_page: this.per_page,
+    });
+  }
+
+  pagination(current: number, total: number): [] {
+    const center = [
+        Number(current) - 2,
+        Number(current) - 1,
+        Number(current),
+        Number(current) + 1,
+        Number(current) + 2,
+      ],
+      filteredCenter = center.filter((p) => p > 1 && p < total),
+      includeThreeLeft = Number(current) === 5,
+      includeThreeRight = Number(current) === total - 4,
+      includeLeftDots = Number(current) > 5,
+      includeRightDots = Number(current) < total - 4;
+
+    if (includeThreeLeft) filteredCenter.unshift(2);
+    if (includeThreeRight) filteredCenter.push(total - 1);
+
+    if (includeLeftDots) filteredCenter.unshift("...");
+    if (includeRightDots) filteredCenter.push("...");
+
+    if (total <= 1) return [1];
+    return [1, ...filteredCenter, total];
+  }
+
+  @Watch("$route", { immediate: false, deep: true })
+  onUrlChange(): void {
+    if (this.$store.state.currentPage !== this.$route.query.page) {
+      this.$store.state.currentPage = this.$route.query.page;
+
+      this.$store.dispatch("searchForData", {
+        nameQuery: this.querySearch,
+        pageQuery: this.$route.query.page,
+        target: this.target,
+        sort: this.sort,
+        order: this.order,
+        per_page: this.per_page,
+      });
     }
   }
 }
@@ -264,6 +263,7 @@ export default class HomePage extends Vue {
     #004f24
   );
   font-family: "Open Sans", sans-serif;
+  font-size: 13px;
   color: #ffff;
 }
 
@@ -301,7 +301,7 @@ export default class HomePage extends Vue {
 .settingsTitle {
   margin-bottom: 35px;
   width: 100%;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
 }
 .queriesList {
@@ -312,18 +312,25 @@ export default class HomePage extends Vue {
 }
 .queryElement {
   margin-bottom: 25px;
-  width: 15%;
+  width: 20%;
   display: flex;
   flex-direction: column;
+  align-content: center;
 }
 .queryElement select,
 .queryElement input {
-  background-color: #cccccc;
+  background-color: #cccccc1e;
+}
+.queryElement select {
+  padding: 10px 15px;
+  border-radius: 15px;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 .queryLabel {
   margin-bottom: 3px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .controlPanelWrap {
@@ -348,7 +355,7 @@ export default class HomePage extends Vue {
 .resetButton {
   margin-right: 15px;
   border: 0;
-  font-size: 13px;
+  font-size: 14px;
   text-transform: uppercase;
   background: transparent;
   color: #000;
@@ -375,12 +382,55 @@ export default class HomePage extends Vue {
     #004f24
   );
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 14px;
   font-family: "Open Sans", sans-serif;
   text-transform: uppercase;
   color: #ffff;
   cursor: pointer;
 }
+
+.paginationWrap {
+  padding: 30px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.paginationWrap button {
+  padding: 5px;
+  margin: 5px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid #026234;
+  border-radius: 5px;
+  color: #000;
+  background: #fff;
+  cursor: pointer;
+}
+
+.currentButton {
+  background-color: #026234 !important;
+  color: #fff !important;
+}
+
+.dotsPage {
+  border: 0 !important;
+  font-weight: bold;
+  cursor: default !important;
+}
+
+.prev-button-margin {
+  margin-right: 5px;
+}
+
+.prev-button {
+  margin-right: 10px;
+}
+.next-button {
+  margin-left: 10px;
+}
+
 @media screen and (max-width: 768px) {
   .queryElement {
     width: 45%;
