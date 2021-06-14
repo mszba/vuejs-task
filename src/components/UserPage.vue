@@ -1,6 +1,7 @@
 <template>
   <div class="wrapper">
-    <div class="basicInfoWrap">
+    <div v-if="isError">{{ errorMessage }}</div>
+    <div class="basicInfoWrap" v-if="!isError">
       <img
         class="userAvatar"
         :src="`${userObject.avatar_url}`"
@@ -62,11 +63,17 @@ import axios from "axios";
 @Component
 export default class UserPage extends Vue {
   userObject = {};
+  isError = false;
+  errorMessage = "";
   mounted(): void {
     axios
       .get(`https://api.github.com/users/${this.$route.params.id}`)
       .then((res) => {
         this.userObject = res.data;
+      })
+      .catch((error) => {
+        this.isError = true;
+        this.errorMessage = error.response.data.message;
       });
   }
 }
