@@ -1,14 +1,17 @@
 <template>
   <div class="wrapper">
-    <div v-if="loading">
+    <div v-if="$store.getters.getIsLoading">
       <v-icon class="loadingIcon" name="circle-notch" scale="2.5" spin />
     </div>
-    <div v-if="totalCount === 0">
+    <div v-if="$store.getters.getTotalCount === 0">
       <span class="noResults">no results</span>
+    </div>
+    <div v-if="$store.getters.getIsError">
+      <span class="noResults">{{ $store.getters.getErrorMessage }}</span>
     </div>
     <div
       class="repoContainer"
-      v-for="(repo, index) in this.reposList"
+      v-for="(repo, index) in $store.getters.getCurrentRepos"
       :key="index"
     >
       <div class="dataWrap">
@@ -29,6 +32,7 @@
                 class="contributorAvatar"
                 :src="`${contributor.contributorAvatar}`"
                 :alt="`${contributor.contributorName}`"
+                loading="lazy"
               />
             </router-link>
           </li>
@@ -44,18 +48,18 @@
             :key="index"
             class="dataCommit"
           >
-            {{ commit }}
+            <p class="commitMessage">{{ commit }}</p>
           </li>
         </ul>
         <span v-if="repo.commits.length === 0">none</span>
       </div>
     </div>
 
-    <a
+    <router-link
       class="userContainer"
-      v-for="(user, index) in this.usersList"
+      v-for="(user, index) in $store.getters.getCurrentUsers"
       :key="index"
-      :href="`/user/${user.userProfile.login}`"
+      :to="`/user/${user.userProfile.login}`"
     >
       <div class="userPresent">
         <img
@@ -77,7 +81,7 @@
           <h3 class="dataTitle">{{ user.userProfile.following }}</h3>
         </div>
       </div>
-    </a>
+    </router-link>
   </div>
 </template>
 
@@ -86,10 +90,12 @@ import { Component, Vue, Prop } from "vue-property-decorator";
 
 @Component
 export default class HelloWorld extends Vue {
-  @Prop({ default: [], type: Array, required: true }) reposList!: [];
-  @Prop({ default: [], type: Array, required: true }) usersList!: [];
-  @Prop({ default: false, type: Boolean, required: true }) loading!: boolean;
-  @Prop({ default: false, type: Number, required: true }) totalCount!: number;
+  // @Prop({ default: [], type: Array, required: true }) reposList!: [];
+  // @Prop({ default: [], type: Array, required: true }) usersList!: [];
+  // @Prop({ default: false, type: Boolean, required: true }) loading!: boolean;
+  // @Prop({ default: false, type: Boolean, required: true }) isError!: boolean;
+  // @Prop({ default: false, type: Number, required: true }) totalCount!: number;
+  // @Prop({ default: "", type: String, required: true }) errorMessage!: string;
 }
 </script>
 
@@ -116,6 +122,7 @@ export default class HelloWorld extends Vue {
   border-radius: 12px;
   border: 1px solid rgb(64 60 67 / 16%);
   box-shadow: 0 2px 10px 1px rgb(64 60 67 / 16%);
+  overflow: scroll;
 }
 .userContainer {
   padding: 15px 30px;
@@ -164,8 +171,14 @@ export default class HelloWorld extends Vue {
 
 .dataCommit {
   margin-left: 15px;
+  display: flex;
+  align-items: flex-start;
   font-size: 12px;
   list-style: none;
+  white-space: pre-wrap;
+}
+
+.commitMessage {
 }
 
 .dataCommit::before {
@@ -180,6 +193,7 @@ export default class HelloWorld extends Vue {
 .elementsList {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .commitsList {
