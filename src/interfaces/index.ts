@@ -2,6 +2,7 @@ export interface Data {
   data: object;
   total_count: number;
   items: [];
+  status: number;
 }
 
 export interface Items {
