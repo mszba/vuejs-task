@@ -1,101 +1,128 @@
 <template>
   <div class="wrapper">
-    <div v-if="$store.getters.getIsLoading">
+    <div v-if="isLoading">
       <v-icon class="loadingIcon" name="circle-notch" scale="2.5" spin />
     </div>
-    <div v-if="$store.getters.getTotalCount === 0">
+    <div v-if="totalCount === 0">
       <span class="noResults">no results</span>
     </div>
-    <div v-if="$store.getters.getIsError">
-      <span class="noResults">{{ $store.getters.getErrorMessage }}</span>
+    <div v-if="isError">
+      <span class="noResults">{{ errorMessage }}</span>
     </div>
-    <div
-      class="repoContainer"
-      v-for="(repo, index) in $store.getters.getCurrentRepos"
-      :key="index"
-    >
-      <div class="dataWrap">
-        <span class="dataTitleLabel">Repository name:</span>
-        <h3 class="dataTitle">{{ repo.name }}</h3>
-      </div>
-
-      <div class="dataWrap">
-        <span class="dataTitleLabel">Contributors:</span>
-        <ul class="elementsList">
-          <li
-            v-for="(contributor, index) in repo.contributors"
-            :key="index"
-            class="dataElementTitle"
-          >
-            <router-link :to="`/user/${contributor.contributorName}`">
-              <img
-                class="contributorAvatar"
-                :src="`${contributor.contributorAvatar}`"
-                :alt="`${contributor.contributorName}`"
-                loading="lazy"
-              />
-            </router-link>
-          </li>
-        </ul>
-        <span v-if="repo.contributors.length === 0">none</span>
-      </div>
-      <div class="dataWrap">
-        <span class="dataTitleLabel">Commits:</span>
-
-        <ul class="commitsList">
-          <li
-            v-for="(commit, index) in repo.commits"
-            :key="index"
-            class="dataCommit"
-          >
-            <p class="commitMessage">{{ commit }}</p>
-          </li>
-        </ul>
-        <span v-if="repo.commits.length === 0">none</span>
-      </div>
-    </div>
-
-    <router-link
-      class="userContainer"
-      v-for="(user, index) in $store.getters.getCurrentUsers"
-      :key="index"
-      :to="`/user/${user.userProfile.login}`"
-    >
-      <div class="userPresent">
-        <img
-          class="userAvatar"
-          :src="`${user.userProfile.avatar_url}`"
-          :alt="`${user.userProfile.login}`"
-        />
-        <h3 class="userName">{{ user.userProfile.login }}</h3>
-      </div>
-
-      <div class="userInfoContainer">
-        <div class="userInfoWrap">
-          <span class="dataTitleLabel">Followers:</span>
-          <h3 class="dataTitle">{{ user.userProfile.followers }}</h3>
+    <div class="contentWrap" v-if="!isLoading">
+      <div
+        class="repoContainer"
+        v-for="(repo, index) in currentRepos"
+        :key="index"
+      >
+        <div class="dataWrap">
+          <span class="dataTitleLabel">Repository name:</span>
+          <h3 class="dataTitle">{{ repo.name }}</h3>
         </div>
 
-        <div class="userInfoWrap">
-          <span class="dataTitleLabel">Following:</span>
-          <h3 class="dataTitle">{{ user.userProfile.following }}</h3>
+        <div class="dataWrap">
+          <span class="dataTitleLabel">Contributors:</span>
+          <ul class="elementsList">
+            <li
+              v-for="(contributor, index) in repo.contributors"
+              :key="index"
+              class="dataElementTitle"
+              @click="dispatchUser(contributor.contributorName)"
+            >
+              <router-link :to="`/user/${contributor.contributorName}`">
+                <img
+                  class="contributorAvatar"
+                  :src="`${contributor.contributorAvatar}`"
+                  :alt="`${contributor.contributorName}`"
+                  loading="lazy"
+                />
+              </router-link>
+            </li>
+          </ul>
+          <span v-if="repo.contributors.length === 0">none</span>
+        </div>
+        <div class="dataWrap">
+          <span class="dataTitleLabel">Commits:</span>
+
+          <ul class="commitsList">
+            <li
+              v-for="(commit, index) in repo.commits"
+              :key="index"
+              class="dataCommit"
+            >
+              <p class="commitMessage">{{ commit }}</p>
+            </li>
+          </ul>
+          <span v-if="repo.commits.length === 0">none</span>
         </div>
       </div>
-    </router-link>
+
+      <div
+        class="userContainer"
+        v-for="(user, index) in currentUsers"
+        :key="index"
+        @click="dispatchUser(user.userProfile.login)"
+      >
+        <router-link
+          :to="`/user/${user.userProfile.login}`"
+          class="userContainer-wrap"
+        >
+          <div class="userPresent">
+            <img
+              class="userAvatar"
+              :src="`${user.userProfile.avatar_url}`"
+              :alt="`${user.userProfile.login}`"
+            />
+            <h3 class="userName">{{ user.userProfile.login }}</h3>
+          </div>
+
+          <div class="userInfoContainer">
+            <div class="userInfoWrap">
+              <span class="dataTitleLabel">Followers:</span>
+              <h3 class="dataTitle">{{ user.userProfile.followers }}</h3>
+            </div>
+
+            <div class="userInfoWrap">
+              <span class="dataTitleLabel">Following:</span>
+              <h3 class="dataTitle">{{ user.userProfile.following }}</h3>
+            </div>
+          </div>
+        </router-link>
+      </div>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { Component, Vue, Prop } from "vue-property-decorator";
+import { Component, Vue } from "vue-property-decorator";
 
 @Component
 export default class HelloWorld extends Vue {
   // @Prop({ default: [], type: Array, required: true }) reposList!: [];
   // @Prop({ default: [], type: Array, required: true }) usersList!: [];
-  // @Prop({ default: false, type: Boolean, required: true }) loading!: boolean;
-  // @Prop({ default: false, type: Boolean, required: true }) isError!: boolean;
-  // @Prop({ default: false, type: Number, required: true }) totalCount!: number;
-  // @Prop({ default: "", type: String, required: true }) errorMessage!: string;
+
+  get currentRepos(): Array {
+    return this.$store.getters.getCurrentRepos;
+  }
+  get currentUsers(): Array {
+    return this.$store.getters.getCurrentUsers;
+  }
+  get isLoading(): boolean {
+    return this.$store.getters.getIsLoading;
+  }
+  get totalCount(): number {
+    return this.$store.getters.getTotalCount;
+  }
+  get isError(): boolean {
+    return this.$store.getters.getIsError;
+  }
+  get errorMessage(): boolean {
+    return this.$store.getters.getErrorMessage;
+  }
+
+  dispatchUser(username: string): void {
+    this.$store.dispatch("fetchUser", username);
+  }
 }
 </script>
 
@@ -111,6 +138,10 @@ export default class HelloWorld extends Vue {
 .loadingIcon {
   color: #097e4d;
 }
+.contentWrap {
+  width: 100%;
+}
+
 .repoContainer {
   padding: 15px 30px;
   margin-bottom: 5px;
@@ -125,24 +156,28 @@ export default class HelloWorld extends Vue {
   overflow: scroll;
 }
 .userContainer {
-  padding: 15px 30px;
   margin-bottom: 5px;
   width: 100%;
   min-height: 100px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
   border-radius: 12px;
   border: 1px solid rgb(64 60 67 / 16%);
   box-shadow: 0 2px 10px 1px rgb(64 60 67 / 16%);
-  text-decoration: none;
-  color: #000;
   transition: all 0.3s ease;
 }
 .userContainer:hover {
   box-shadow: 0 2px 8px 1px rgb(64 60 67 / 24%);
   border-color: rgba(223, 225, 229, 0);
+}
+.userContainer-wrap {
+  padding: 15px 30px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  color: #000;
+  text-decoration: none;
 }
 .userInfoWrap {
   padding: 0 40px;
