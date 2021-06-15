@@ -1,7 +1,14 @@
 <template>
   <div class="wrapper">
-    <div v-if="isError">{{ errorMessage }}</div>
-    <div class="basicInfoWrap" v-if="!isError">
+    <v-icon
+      v-if="isLoading"
+      class="loadingIcon"
+      name="circle-notch"
+      scale="2.5"
+      spin
+    />
+    <div v-if="isError" class="userErrorMessage">{{ errorMessage }}</div>
+    <div class="basicInfoWrap" v-if="!isError && !isLoading">
       <img
         class="userAvatar"
         :src="`${userObject.avatar_url}`"
@@ -27,10 +34,10 @@
       </div>
       <div class="moreInfoWrap">
         <div class="infoElement">
-          Created at: {{ userObject.created_at | moment("DD-MM-YYYY") }}
+          Created at: {{ formatDate(userObject.created_at) }}
         </div>
         <div class="infoElement">
-          Updated at: {{ userObject.updated_at | moment("DD-MM-YYYY") }}
+          Updated at: {{ formatDate(userObject.updated_at) }}
         </div>
         <div class="infoElement">
           Repositories: {{ userObject.public_repos }}
@@ -58,23 +65,30 @@
 
 <script lang="ts">
 import { Component, Vue } from "vue-property-decorator";
-import axios from "axios";
 
 @Component
 export default class UserPage extends Vue {
-  userObject = {};
-  isError = false;
-  errorMessage = "";
+  get userObject() {
+    return this.$store.getters.getUserObject;
+  }
+  get isLoading(): boolean {
+    return this.$store.getters.getIsLoading;
+  }
+  get isError(): boolean {
+    return this.$store.getters.getIsError;
+  }
+  get errorMessage(): string {
+    return this.$store.getters.getErrorMessage;
+  }
+
+  formatDate(date: string): string {
+    return new Date(date).toLocaleDateString().replace(/\./g, "-");
+  }
+
   mounted(): void {
-    axios
-      .get(`https://api.github.com/users/${this.$route.params.id}`)
-      .then((res) => {
-        this.userObject = res.data;
-      })
-      .catch((error) => {
-        this.isError = true;
-        this.errorMessage = error.response.data.message;
-      });
+    if (!this.userObject.login && !this.isLoading) {
+      this.$store.dispatch("fetchUser", this.$route.params.id);
+    }
   }
 }
 </script>
@@ -157,6 +171,16 @@ export default class UserPage extends Vue {
   text-decoration: none;
   color: #000;
 }
+
+.loadingIcon {
+  color: #097e4d;
+}
+
+.userErrorMessage {
+  font-size: 28px;
+  font-weight: bold;
+}
+
 @media screen and (max-width: 768px) {
   .moreInfoWrap {
     grid-template-columns: 1fr 1fr;
