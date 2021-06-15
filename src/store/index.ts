@@ -14,12 +14,13 @@ import {
 
 Vue.use(Vuex);
 
-const accessHeader = 'token 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';
+const accessHeader = 'token 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';
 
 export default new Vuex.Store({
   state: {
     reposArray: [],
     usersArray: [],
+    userObject: {},
     currentPage: 1,
     totalCount: -1,
     isLoading: false,
@@ -36,22 +37,45 @@ export default new Vuex.Store({
     setCurrentPage(state, payload) {
       state.currentPage = payload;
     },
+    setCurrentUser(state, payload) {
+      state.userObject = payload;
+    },
   },
   actions: {
-    searchForData(state, formData) {
-      if (formData.nameQuery == null) return;
+    fetchUser(state, username) {
+      if (state.getters.getUserObject.login == username) {
+        return;
+      }
 
-      this.state.isError= false,
       this.state.isLoading = true;
-      state.commit('setCurrentUsers', []);
+
+      axios
+        .get(`https://api.github.com/users/${username}`)
+        .then((res) => {
+          state.commit('setCurrentUser', res.data);
+          this.state.isLoading = false;
+        })
+        .catch((error) => {
+          state.commit('setCurrentUser', {});
+          this.state.isLoading = false;
+          this.state.isError = true;
+          this.state.errorMessage = error.response.data.message;
+        });
+    },
+    searchForData(state, formData) {
+      if (formData.name == null) return;
+
+      this.state.isError = false;
+      this.state.isLoading = true;
 
       const reposPayload: reposArray[] = [];
       let usersPayload: usersArrayInterface[] = [];
 
       if (formData.target === 'repositories') {
+        state.commit('setCurrentUsers', []);
         axios
           .get(
-            `https://api.github.com/search/repositories?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.pageQuery}&order=${formData.order}&q=${formData.nameQuery}`,
+            `https://api.github.com/search/repositories?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.page}&order=${formData.order}&q=${formData.name}`,
             {
               headers: {
                 Authorization: accessHeader,
@@ -120,7 +144,7 @@ export default new Vuex.Store({
 
         axios
           .get(
-            `https://api.github.com/search/users?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.pageQuery}&order=${formData.order}&q=${formData.nameQuery}`,
+            `https://api.github.com/search/users?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.page}&order=${formData.order}&q=${formData.name}`,
             {
               headers: {
                 Authorization: accessHeader,
@@ -167,5 +191,6 @@ export default new Vuex.Store({
     getIsError: (state) => state.isError,
     getErrorMessage: (state) => state.errorMessage,
     getTotalCount: (state) => state.totalCount,
+    getUserObject: (state) => state.userObject,
   },
 });
