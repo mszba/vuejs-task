@@ -1,10 +1,7 @@
 <template>
   <div class="paginationWrap" v-if="$store.state.totalCount > 0">
     <span
-      v-for="(item, index) in getPaginationArray(
-        queryParams.page,
-        pageNumbers()
-      )"
+      v-for="(item, index) in getPaginationArray(queryParams.page, pageNumbers)"
       :key="index"
     >
       <button
@@ -30,10 +27,7 @@ import { Component, Vue, Prop } from "vue-property-decorator";
 @Component
 export default class Pagination extends Vue {
   @Prop({ required: true }) queryParams;
-
-  pageNumbers(): number {
-    return Math.ceil(this.$store.state.totalCount / this.queryParams.per_page);
-  }
+  @Prop({ required: true }) pageNumbers;
 
   getPaginationArray(current: number, total: number): [] {
     const center = [
@@ -43,17 +37,15 @@ export default class Pagination extends Vue {
         Number(current) + 1,
         Number(current) + 2,
       ],
-      filteredCenter = center.filter((p) => p > 1 && p < total),
-      includeThreeLeft = Number(current) === 5,
-      includeThreeRight = Number(current) === total - 4,
-      includeLeftDots = Number(current) > 5,
-      includeRightDots = Number(current) < total - 4;
+      filteredCenter = center.filter((p) => p > 1 && p < total);
 
-    if (includeThreeLeft) filteredCenter.unshift(2);
-    if (includeThreeRight) filteredCenter.push(total - 1);
+    if (Number(current) >= 5) {
+      filteredCenter.unshift("...");
+    }
 
-    if (includeLeftDots) filteredCenter.unshift("...");
-    if (includeRightDots) filteredCenter.push("...");
+    if (Number(current) < total - 4) {
+      filteredCenter.push("...");
+    }
 
     if (total <= 1) return [1];
     return [1, ...filteredCenter, total];
@@ -73,10 +65,7 @@ export default class Pagination extends Vue {
     query.per_page = this.queryParams.per_page;
     this.$router.push({ query });
 
-    this.$store.dispatch("searchForData", {
-      ...this.queryParams,
-      page: newPageNumber,
-    });
+    this.$store.dispatch("searchForData", this.queryParams);
   }
 }
 </script>
