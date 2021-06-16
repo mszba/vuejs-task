@@ -97,10 +97,7 @@
 import { Component, Vue } from "vue-property-decorator";
 
 @Component
-export default class HelloWorld extends Vue {
-  // @Prop({ default: [], type: Array, required: true }) reposList!: [];
-  // @Prop({ default: [], type: Array, required: true }) usersList!: [];
-
+export default class SearchList extends Vue {
   get currentRepos(): Array {
     return this.$store.getters.getCurrentRepos;
   }
