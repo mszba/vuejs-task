@@ -7,6 +7,7 @@
         class="searchInput"
         type="text"
         placeholder="Type keywords"
+        @change="changePageToDefault"
       />
       <button type="submit" :disabled="isLoading" class="searchIconButton">
         <v-icon class="searchIcon" name="search" scale="1.1" />
