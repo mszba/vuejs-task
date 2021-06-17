@@ -15,7 +15,7 @@ Vue.use(Vuex);
 
 const commitsApiCall = (repoName: string, commitsArray: string[]) => {
   axiosInstance
-    .get(`https://api.github.com/repos/${repoName}/commits`)
+    .get(`/repos/${repoName}/commits`)
     .then((res) => {
       res.data.forEach((commit: Commits) => {
         commitsArray.push(commit.commit.message);
@@ -30,7 +30,7 @@ const contributorsApiCall = (
   contributorsArray: contributorsTypes[]
 ) => {
   axiosInstance
-    .get(`https://api.github.com/repos/${repoName}/contributors`)
+    .get(`/repos/${repoName}/contributors`)
     .then((res) => {
       res.data.forEach((contributor: contributorObject) => {
         contributorsArray.push({
@@ -88,7 +88,7 @@ export default new Vuex.Store({
       this.state.isUserLoading = true;
 
       axiosInstance
-        .get(`https://api.github.com/users/${username}`)
+        .get(`/users/${username}`)
         .then((res) => {
           state.commit('setCurrentUser', res.data);
           state.commit('addNewUser', res.data);
@@ -109,13 +109,13 @@ export default new Vuex.Store({
       state.commit('setCurrentUsers', []);
       state.commit('setCurrentRepos', []);
 
-      const reposPayload: reposArray[] = [];
+      let reposPayload: reposArray[] = [];
       let usersPayload: usersArrayInterface[] = [];
 
       if (formData.target === 'repositories') {
         axiosInstance
           .get(
-            `https://api.github.com/search/repositories?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.page}&order=${formData.order}&q=${formData.name}`
+            `/search/repositories?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.page}&order=${formData.order}&q=${formData.name}`
           )
           .then((res) => {
             if (res.data.total_count == 0) state.commit('setCurrentRepos', []);
@@ -136,8 +136,13 @@ export default new Vuex.Store({
                 commits: commitsArray,
                 contributors: contributorsArray,
               });
-              state.commit('setCurrentRepos', reposPayload);
             });
+          })
+          .then(() => {
+            state.commit('setCurrentRepos', reposPayload);
+            setTimeout(() => {
+              reposPayload = [];
+            }, 500);
           })
           .catch((error) => {
             this.state.isLoading = false;
@@ -149,13 +154,14 @@ export default new Vuex.Store({
       } else {
         axiosInstance
           .get(
-            `https://api.github.com/search/users?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.page}&order=${formData.order}&q=${formData.name}`
+            `/search/users?sort=${formData.sort}&per_page=${formData.per_page}&page=${formData.page}&order=${formData.order}&q=${formData.name}`
           )
           .then((res) => {
             if (res.data.total_count == 0) state.commit('setCurrentUsers', []);
 
             this.state.totalCount = res.data.total_count;
             this.state.isLoading = false;
+
             res.data.items.forEach((user: usersInterface) => {
               axiosInstance
                 .get(user.url)
@@ -164,12 +170,17 @@ export default new Vuex.Store({
                   usersPayload.push({
                     userProfile,
                   });
-                  state.commit('setCurrentUsers', usersPayload);
                 })
                 .catch(() => {
                   usersPayload = [];
                 });
             });
+          })
+          .then(() => {
+            state.commit('setCurrentUsers', usersPayload);
+            setTimeout(() => {
+              usersPayload = [];
+            }, 500);
           })
           .catch((error) => {
             this.state.isLoading = false;
