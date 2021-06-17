@@ -2,7 +2,7 @@
   <div class="wrapper">
     <SearchPanel :handleSubmit="handleSubmit" :queryParams="queryParams" />
     <SearchList />
-    <Pagination :queryParams="queryParams" />
+    <Pagination :queryParams="queryParams" :pageNumbers="pageNumbers" />
   </div>
 </template>
 
@@ -11,6 +11,7 @@ import { Component, Vue, Watch } from "vue-property-decorator";
 import SearchList from "./SearchList.vue";
 import SearchPanel from "./SearchPanel.vue";
 import Pagination from "./Pagination.vue";
+import { queryParamsTypes } from "../interfaces";
 
 @Component({
   components: {
@@ -20,31 +21,31 @@ import Pagination from "./Pagination.vue";
   },
 })
 export default class HomePage extends Vue {
-  queryParams = {
+  queryParams: queryParamsTypes = {
     name: this.$route.query.name || "",
-    page: Number(this.$route.query.page) || 1,
+    page: this.$route.query.page || "1",
     target: this.$route.query.target || "repositories",
     sort: this.$route.query.sort || "stars",
     order: this.$route.query.order || "desc",
-    per_page: Number(this.$route.query.per_page) || 10,
+    per_page: this.$route.query.per_page || "10",
   };
 
   handleSearchDispatch(): void {
-    this.$store.dispatch("searchForData", {
-      ...this.queryParams,
-    });
+    this.$store.dispatch("searchForData", this.queryParams);
+  }
+
+  get pageNumbers(): number {
+    return Math.ceil(
+      this.$store.state.totalCount / Number(this.queryParams.per_page)
+    );
   }
 
   handleSubmit(event: Event): void {
     if (event) event.preventDefault();
 
-    const query = Object.assign({}, this.$route.query);
-    query.name = this.queryParams.name;
-    query.page = this.queryParams.page;
-    query.target = this.queryParams.target;
-    query.sort = this.queryParams.sort;
-    query.order = this.queryParams.order;
-    query.per_page = this.queryParams.per_page;
+    if (this.pageNumbers == 1) this.queryParams.page = "1";
+
+    const query = { ...this.queryParams };
     this.$router.push({ query });
 
     this.handleSearchDispatch();
@@ -61,7 +62,7 @@ export default class HomePage extends Vue {
       (this.queryParams.target === "users" &&
         this.$store.state.usersArray.length === 0)
     ) {
-      this.handleSearchDispatch();
+      this.handleSubmit(null);
     }
   }
 
@@ -69,11 +70,9 @@ export default class HomePage extends Vue {
   onUrlChange(): void {
     if (this.$store.state.currentPage !== this.$route.query.page) {
       this.$store.state.currentPage = this.$route.query.page;
+      this.queryParams.page = this.$route.query.page;
 
-      this.$store.dispatch("searchForData", {
-        ...this.queryParams,
-        page: this.$route.query.page,
-      });
+      this.$store.dispatch("searchForData", this.queryParams);
     }
   }
 }
