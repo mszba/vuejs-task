@@ -22,28 +22,33 @@
 
 <script lang="ts">
 import { Component, Vue, Prop } from "vue-property-decorator";
-// import HomePage from "@/components/HomePage.vue";
+import { queryParamsTypes } from "../interfaces";
 
 @Component
 export default class Pagination extends Vue {
-  @Prop({ required: true }) queryParams;
-  @Prop({ required: true }) pageNumbers;
+  @Prop({ required: true }) queryParams: queryParamsTypes;
+  @Prop({ required: true }) pageNumbers: number;
 
-  getPaginationArray(current: number, total: number): [] {
-    const center = [
+  getPaginationArray(
+    current: number | string,
+    total: number | string
+  ): (string | number)[] | string | number {
+    const center: number[] | string[] = [
         Number(current) - 2,
         Number(current) - 1,
         Number(current),
         Number(current) + 1,
         Number(current) + 2,
       ],
-      filteredCenter = center.filter((p) => p > 1 && p < total);
+      filteredCenter: (string | number)[] = center.filter(
+        (p: number | string) => p > 1 && p < total
+      );
 
-    if (Number(current) >= 5) {
+    if (current >= 5) {
       filteredCenter.unshift("...");
     }
 
-    if (Number(current) < total - 4) {
+    if (current < Number(total) - 4) {
       filteredCenter.push("...");
     }
 
@@ -56,13 +61,7 @@ export default class Pagination extends Vue {
     this.queryParams.page = newPageNumber;
     this.$store.commit("setCurrentPage", newPageNumber);
 
-    const query = Object.assign({}, this.$route.query);
-    query.name = this.queryParams.name;
-    query.page = newPageNumber;
-    query.target = this.queryParams.target;
-    query.sort = this.queryParams.sort;
-    query.order = this.queryParams.order;
-    query.per_page = this.queryParams.per_page;
+    const query = { ...this.queryParams, page: newPageNumber };
     this.$router.push({ query });
 
     this.$store.dispatch("searchForData", this.queryParams);
